@@ -1,99 +1,60 @@
-using System;
-using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using System.Collections;
 
-public class LoadingUIManager : MonoBehaviour
+public class LoadingController : MonoBehaviour
 {
-    private static LoadingUIManager _instance;
+    [Header("UI Panels")]
+    [SerializeField] private GameObject loadingCanvas;
 
-    [Header("UI Groups")]
-    [SerializeField] private CanvasGroup _mainCanvas;
-    [SerializeField] private CanvasGroup _loadingCanvas;
+    [Header("Loading Bar")]
+    [SerializeField] private Image fillImage;
 
-    [Header("Progress Bar")]
-    [SerializeField] private Image _progressBar;
+    [Header("Settings")]
+    [SerializeField] private string sceneName;
+    [Range(1f, 10f)]
+    [SerializeField] private float minimumTime = 3.0f; // 최소 로딩 시간 (초 단위)
 
-    private float _targetDuration = 10.0f;
-    private bool _isProcessing = false;
-
-    public static LoadingUIManager Instance
+    void Start()
     {
-        get
-        {
-            if (_instance == null)
-            {
-                var obj = FindObjectOfType<LoadingUIManager>();
-                if (obj != null) _instance = obj;
-                else _instance = Create();
-            }
-            return _instance;
-        }
+        if (loadingCanvas != null)
+            loadingCanvas.SetActive(false);
     }
 
-    private static LoadingUIManager Create()
+    public void OnClickStartLoading()
     {
-        return Instantiate(Resources.Load<LoadingUIManager>("LoadingUI"));
+        loadingCanvas.SetActive(true);
+        StartCoroutine(LoadSceneAsync());
     }
 
-    private void Awake()
+    IEnumerator LoadSceneAsync()
     {
-        if (Instance != this)
+        fillImage.fillAmount = 0;
+
+        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName);
+        op.allowSceneActivation = false;
+
+        float timer = 0f;
+
+        // 실제 로딩과 상관없이 minimumTime 동안 루프를 돕니다.
+        while (timer < 1.0f)
         {
-            Destroy(gameObject);
-            return;
-        }
-        DontDestroyOnLoad(gameObject);
-    }
-
-    public void OnClickToStart()
-    {
-        if (_isProcessing) return;
-        StartCoroutine(StartLoadingSequence());
-    }
-
-    private IEnumerator StartLoadingSequence()
-    {
-        _isProcessing = true;
-        if (_mainCanvas != null)
-        {
-            float fTimer = 0f;
-            while (fTimer <= 1.0f)
-            {
-                fTimer += Time.unscaledDeltaTime * 4.0f;
-                _mainCanvas.alpha = Mathf.Lerp(1.0f, 0.0f, fTimer);
-                yield return null;
-            }
-            _mainCanvas.gameObject.SetActive(false);
-        }
-
-        if (_loadingCanvas != null)
-        {
-            _loadingCanvas.gameObject.SetActive(true);
-            _loadingCanvas.alpha = 1.0f;
-        }
-
-        yield return StartCoroutine(LoadSceneProgress());
-    }
-
-    private IEnumerator LoadSceneProgress()
-    {
-        _progressBar.fillAmount = 0.0f;
-        float timer = 0.0f;
-
-        while (timer < _targetDuration)
-        {
-            timer += Time.unscaledDeltaTime;
-            float timeRatio = timer / _targetDuration;
-            _progressBar.fillAmount = Mathf.Lerp(_progressBar.fillAmount, timeRatio, Time.unscaledDeltaTime * 5.0f);
-
             yield return null;
+
+            // 시간에 따른 로딩바 진행 (0에서 1까지 minimumTime에 걸쳐 증가)
+            timer += Time.unscaledDeltaTime / minimumTime;
+
+            // 실제 로딩 진행률과 비교하여 더 낮은 값을 표시 (혹은 그냥 timer만 표시)
+            // 보통 '연출'이 목적이면 timer 값만 사용해도 무방합니다.
+            fillImage.fillAmount = timer;
+
+            // 로딩바가 다 찼고, 실제 씬 로딩도 90% 이상(완료단계) 되었을 때
+            if (timer >= 1.0f && op.progress >= 0.9f)
+            {
+                op.allowSceneActivation = true;
+                yield break;
+            }
         }
-
-        _progressBar.fillAmount = 1.0f;
-        yield return new WaitForSecondsRealtime(0.5f);
-
-        _isProcessing = false;
     }
 }

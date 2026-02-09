@@ -281,9 +281,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7976ffe642748d741ad991500c19ddb3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _mainCanvas: {fileID: 0}
-  _loadingCanvas: {fileID: 5156758104088073485}
-  _progressBar: {fileID: 4832835327981656300}
+  loadingCanvas: {fileID: 4504876465601613260}
+  fillImage: {fileID: 4832835327981656300}
+  sceneName: 
+  minimumTime: 8
 --- !u!223 &7423313495605053767
 Canvas:
   m_ObjectHideFlags: 0
